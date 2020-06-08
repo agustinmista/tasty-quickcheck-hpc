@@ -59,6 +59,7 @@ import Data.Monoid
 import Trace.Hpc.Tix
 import Trace.Hpc.Reflect
 import Data.Char
+import System.Directory
 
 data QC_HPC = QC_HPC FilePath QC.Property
   deriving Typeable
@@ -214,6 +215,7 @@ instance IsTest QC_HPC where
                      else QC.quickCheckWithResult
       replayMsg = makeReplayMsg replaySeed maxSize
 
+    createDirectoryIfMissing True "hpc"
     clearTix
     r <- testRunner args prop
     tix <- examineTix
