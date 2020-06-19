@@ -68,8 +68,8 @@ data QC_HPC = QC_HPC FilePath QC.Property
 testProperty :: QC.Testable a => TestName -> a -> TestTree
 testProperty name prop = singleTest name $ QC_HPC filename $ QC.property prop
   where
-    filename = "tix/" <> unwords (words (filter isAlphaNum name)) <> ".tix"
-
+    filename = ".tix/" <> fmap sanitize name <> ".tix"
+    sanitize c = if isAlphaNum c then c else '_'
 
 -- | Create a test from a list of QuickCheck properties. To be used
 -- with 'Test.QuickCheck.allProperties'. E.g.
@@ -215,7 +215,7 @@ instance IsTest QC_HPC where
                      else QC.quickCheckWithResult
       replayMsg = makeReplayMsg replaySeed maxSize
 
-    createDirectoryIfMissing True "tix"
+    createDirectoryIfMissing True ".tix"
     clearTix
     r <- testRunner args prop
     tix <- examineTix
