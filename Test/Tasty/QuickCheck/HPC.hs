@@ -50,7 +50,7 @@ import Data.List
 import Text.Printf
 import Test.QuickCheck.Random (mkQCGen)
 import Options.Applicative (metavar)
-import System.Random (getStdRandom, randomR)
+import System.Random (getStdRandom, randomR, randomRIO)
 #if !MIN_VERSION_base(4,9,0)
 import Control.Applicative
 import Data.Monoid
@@ -66,10 +66,7 @@ data QC_HPC = QC_HPC FilePath QC.Property
 
 -- | Create a 'Test' for a QuickCheck 'QC.Testable' property
 testProperty :: QC.Testable a => TestName -> a -> TestTree
-testProperty name prop = singleTest name $ QC_HPC filename $ QC.property prop
-  where
-    filename = ".tix/" <> fmap sanitize name <> ".tix"
-    sanitize c = if isAlphaNum c then c else '_'
+testProperty name prop = singleTest name $ QC_HPC name $ QC.property prop
 
 -- | Create a test from a list of QuickCheck properties. To be used
 -- with 'Test.QuickCheck.allProperties'. E.g.
@@ -203,7 +200,7 @@ instance IsTest QC_HPC where
     , Option (Proxy :: Proxy QuickCheckMaxShrinks)
     ]
 
-  run opts (QC_HPC path prop) _yieldProgress = do
+  run opts (QC_HPC name prop) _yieldProgress = do
     (replaySeed, args) <- optionSetToArgs opts
 
     let
@@ -215,11 +212,17 @@ instance IsTest QC_HPC where
                      else QC.quickCheckWithResult
       replayMsg = makeReplayMsg replaySeed maxSize
 
+    ---------
+    rnd <- randomRIO (111111, 999999) :: IO Int 
+    let sanitize c = if isAlphaNum c then c else '_'
+    let path = ".tix/" <> fmap sanitize name <> "." <> show rnd <> ".tix"
     createDirectoryIfMissing True ".tix"
+
     clearTix
     r <- testRunner args prop
     tix <- examineTix
     writeTix path tix
+    ---------
 
     qcOutput <- formatMessage $ QC.output r
     let qcOutputNl =
